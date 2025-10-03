@@ -1,6 +1,3 @@
-// routes/testRoutes.js
-// This file contains test and hello world routes
-
 const express = require("express");
 const router = express.Router();
 

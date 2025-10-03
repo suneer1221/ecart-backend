@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // MongoDB Connection
-const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/emart";
+const mongoURI = process.env.MONGO_URI;
 
 mongoose.connect(mongoURI)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -34,17 +34,10 @@ app.get("/", (req, res) => {
 
 // Hello World API Route
 app.use("/api", helloworldRoutes);
-
 // Authentication routes (signup, login, etc.)
 app.use("/api/auth", authRoutes);
 
-// ========================================
-// START SERVER
-// ========================================
+
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`📝 API Endpoints:`);
-  console.log(`   - GET  /api/hello`);
-  console.log(`   - POST /api/auth/signup`);
-  console.log(`   - GET  /api/auth/test`);
 });

@@ -1,18 +1,15 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken"); // <-- added
 const User = require("../models/User");
 
 const router = express.Router();
 
-// ========================================
-// SIGNUP API - POST /api/auth/signup
-// ========================================
+// SIGNUP API
 router.post("/signup", async (req, res) => {
   try {
-    // Step 1: Get data from request body
-    const { name, email, password } = req.body;
+    let { name, email, password } = req.body;
 
-    // Step 2: Validate input (check if all fields are provided)
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -20,7 +17,6 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Step 3: Check password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -28,7 +24,8 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Step 4: Check if user already exists
+    email = email.toLowerCase(); // normalize
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -37,21 +34,17 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Step 5: Hash password for security
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Step 6: Create new user object
     const newUser = new User({
       name,
       email,
       password: hashedPassword
     });
 
-    // Step 7: Save user to database
     await newUser.save();
 
-    // Step 8: Send success response (don't send password back)
     res.status(201).json({
       success: true,
       message: "User registered successfully! 🎉",
@@ -64,25 +57,60 @@ router.post("/signup", async (req, res) => {
     });
 
   } catch (error) {
-    // Handle any errors
     console.error("Signup Error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error. Please try again later.",
-      error: error.message
+      message: "Server error. Please try again later."
+      // avoid sending error.message to clients in production
     });
   }
 });
 
-// ========================================
-// TEST ROUTE - GET /api/auth/test
-// ========================================
-router.get("/test", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Auth routes are working! ✅"
-  });
+// LOGIN API
+router.post('/login', async (req, res) => {
+  try {
+    const { email: rawEmail, password } = req.body;
+    if (!rawEmail || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide email and password' });
+    }
+
+    const email = rawEmail.toLowerCase();
+
+    // If your schema hides password by default, uncomment .select('+password')
+    const user = await User.findOne({ email }); // .select('+password')
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Login Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
-// Export the router
+router.get("/test", (req, res) => {
+  res.status(200).json({ success: true, message: "Auth routes are working! ✅" });
+});
+
 module.exports = router;
