@@ -2,6 +2,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
+const authRoutes = require("./routes/authRoutes");
+const helloworldRoutes = require("./routes/helloworldRoutes");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -16,20 +19,32 @@ mongoose.connect(mongoURI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Error:", err));
 
-  // Hello World API Route
-app.get("/api/hello", (req, res) => {
+  // Test route
+app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Hello World! Welcome to Emart Backend API 🛒",
+    message: "Ecommerce server is running 🚀",
+    endpoints: {
+      hello: "/api/hello",
+      signup: "/api/auth/signup",
     
+    }
   });
 });
 
-// Test Route
-app.get("/", (req, res) => {
-  res.send("Ecart Ecommerce server is running 🚀");
-});
+// Hello World API Route
+app.use("/api", helloworldRoutes);
 
+// Authentication routes (signup, login, etc.)
+app.use("/api/auth", authRoutes);
+
+// ========================================
+// START SERVER
+// ========================================
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`📝 API Endpoints:`);
+  console.log(`   - GET  /api/hello`);
+  console.log(`   - POST /api/auth/signup`);
+  console.log(`   - GET  /api/auth/test`);
 });
